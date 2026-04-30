@@ -178,15 +178,60 @@
 
         // Fungsi Menambah Absen
         async function addToList() {
-            let username = inputElement.value.trim();
+                    // Fungsi baru untuk membersihkan input berantakan
+        function ekstrakUsername(input) {
+            // 1. Ambil baris paling bawah (kalau dia copas seluruh list)
+            const baris = input.trim().split('\n').filter(line => line.trim() !== '');
+            let teksMentah = baris[baris.length - 1].trim();
 
-            if (username === "") {
-                alert("Username tidak boleh kosong!");
+            // 2. Kalau ada angka absen di depannya (misal "3. " atau "3) " atau "- "), hapus
+            teksMentah = teksMentah.replace(/^[0-9]+[\.\)\-]\s*/g, '').trim();
+
+            // 3. Hapus '@' kalau ada
+            if (teksMentah.startsWith('@')) {
+                teksMentah = teksMentah.substring(1);
+            }
+
+            // 4. Pisahkan teks berdasarkan garis miring '/' (kalau dia input URL lengkap)
+            const bagian = teksMentah.split('/');
+            
+            let hasilUsername = "";
+            
+            // Cek dari belakang untuk cari username (mengabaikan https dan instagram.com)
+            for (let i = bagian.length - 1; i >= 0; i--) {
+                let kata = bagian[i].trim();
+                
+                // Bersihkan kalau ada embel-embel parameter link (contoh: ?igsh=1234)
+                kata = kata.split('?')[0]; 
+                
+                // Kalau kata ini bukan link dan tidak kosong, berarti ini username-nya
+                if (kata !== "" && !kata.includes("http") && !kata.includes("instagram.com")) {
+                    hasilUsername = kata;
+                    break;
+                }
+            }
+
+            // Fallback kalau hasil pecahannya kosong
+            if (!hasilUsername) {
+                hasilUsername = teksMentah.split('?')[0];
+            }
+
+            return hasilUsername.trim();
+        }
+
+        // Fungsi Menambah Absen (Diperbarui)
+        async function addToList() {
+            const nilaiInput = inputElement.value;
+            
+            // Panggil fungsi pembersih di atas
+            let usernameBersih = ekstrakUsername(nilaiInput);
+
+            if (usernameBersih === "") {
+                alert("Username tidak valid!");
                 return;
             }
 
-            if (username.startsWith('@')) username = username.substring(1);
-            const igLink = `https://instagram.com/${username}`;
+            const igLink = `https://instagram.com/${usernameBersih}`;
 
             btnElement.disabled = true;
             btnElement.textContent = "...";
