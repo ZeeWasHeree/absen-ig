@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absen IG Link</title>
+    <style>
+        /* CSS tetap sama - Desain Minimalis & Dark Theme dengan Neon Glow */
+        body {
+            background-color: #0a0a0c;
+            color: #eaeaea;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #141418;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(138, 43, 226, 0.15);
+            width: 90%;
+            max-width: 450px;
+            border: 1px solid #2a2a35;
+        }
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 25px;
+            color: #fff;
+            text-shadow: 0 0 15px rgba(220, 20, 60, 0.6);
+            letter-spacing: 1px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        input {
+            flex: 1;
+            padding: 12px 15px;
+            background: #0f0f13;
+            border: 1px solid #333;
+            color: #fff;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        input:focus {
+            outline: none;
+            border-color: #8a2be2;
+            box-shadow: 0 0 10px rgba(138, 43, 226, 0.5);
+        }
+        button {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #8a2be2, #dc143c);
+            border: none;
+            color: white;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 20, 60, 0.5);
+        }
+        .list-container {
+            background: #0a0a0c;
+            border-radius: 8px;
+            padding: 15px;
+            min-height: 100px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #2a2a35;
+        }
+        ol {
+            margin: 0;
+            padding-left: 20px;
+            color: #888;
+        }
+        li {
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+        li::marker {
+            color: #8a2be2;
+            font-weight: bold;
+        }
+        a {
+            color: #b19cd9;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            word-break: break-all;
+        }
+        a:hover {
+            color: #ff69b4;
+            text-shadow: 0 0 8px rgba(255, 105, 180, 0.6);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Absen IG</h2>
+        
+        <div class="input-group">
+            <input type="text" id="usernameInput" placeholder="Masukkan username IG..." autocomplete="off">
+            <button id="submitBtn">Absen</button>
+        </div>
+
+        <div class="list-container">
+            <ol id="linkList">
+                <li>Loading data...</li>
+            </ol>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import Firebase Functions
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+        import { getDatabase, ref, push, onValue, query, orderByChild, equalTo, get } 
+        from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+
+        // ==========================================
+        // MASUKKAN FIREBASE CONFIG KAMU DI SINI
+        // ==========================================
+        const firebaseConfig = {
+    apiKey: "AIzaSyDXm-jMcH9V48gO7l2m38zohpW0C-rW7EA",
+    authDomain: "absen-ig.firebaseapp.com",
+    databaseURL: "https://absen-ig-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "absen-ig",
+    storageBucket: "absen-ig.firebasestorage.app",
+    messagingSenderId: "1089650967558",
+    appId: "1:1089650967558:web:444a4f90d0f77390286f87",
+    measurementId: "G-3RMSBW7CWJ"
+  };
+
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const absenRef = ref(db, 'absen_ig');
+
+        // Elemen DOM
+        const listElement = document.getElementById('linkList');
+        const inputElement = document.getElementById('usernameInput');
+        const btnElement = document.getElementById('submitBtn');
+
+        // Fungsi Listen Data secara Real-Time
+        onValue(absenRef, (snapshot) => {
+            listElement.innerHTML = ''; // Bersihkan list
+            
+            if (snapshot.exists()) {
+                snapshot.forEach((childSnapshot) => {
+                    const data = childSnapshot.val();
+                    
+                    const newListItem = document.createElement('li');
+                    const newAnchor = document.createElement('a');
+                    newAnchor.href = data.link;
+                    newAnchor.target = "_blank";
+                    newAnchor.textContent = data.link;
+
+                    newListItem.appendChild(newAnchor);
+                    listElement.appendChild(newListItem);
+                });
+            } else {
+                listElement.innerHTML = '<li>Belum ada yang absen.</li>';
+            }
+            
+            // Auto-scroll ke bawah saat ada absen baru
+            const container = document.querySelector('.list-container');
+            container.scrollTop = container.scrollHeight;
+        });
+
+        // Fungsi Menambah Absen
+        async function addToList() {
+            let username = inputElement.value.trim();
+
+            if (username === "") {
+                alert("Username tidak boleh kosong!");
+                return;
+            }
+
+            if (username.startsWith('@')) username = username.substring(1);
+            const igLink = `https://instagram.com/${username}`;
+
+            btnElement.disabled = true;
+            btnElement.textContent = "...";
+
+            // Cek apakah link sudah ada (mencegah absen ganda)
+            const checkQuery = query(absenRef, orderByChild('link'), equalTo(igLink));
+            const snapshot = await get(checkQuery);
+
+            if (snapshot.exists()) {
+                alert("Username ini sudah absen!");
+            } else {
+                // Simpan ke Firebase
+                push(absenRef, { link: igLink });
+                inputElement.value = "";
+            }
+
+            btnElement.disabled = false;
+            btnElement.textContent = "Absen";
+            inputElement.focus();
+        }
+
+        // Event Listeners
+        btnElement.addEventListener('click', addToList);
+        inputElement.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') addToList();
+        });
+    </script>
+
+</body>
+</html>
