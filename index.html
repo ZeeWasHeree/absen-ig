@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Absen IG Link</title>
     <style>
-        /* CSS tetap sama - Desain Minimalis & Dark Theme dengan Neon Glow */
         body {
             background-color: #0a0a0c;
             color: #eaeaea;
@@ -106,7 +105,6 @@
 
     <div class="container">
         <h2>Absen IG</h2>
-        
         <div class="input-group">
             <input type="text" id="usernameInput" placeholder="Masukkan username IG..." autocomplete="off">
             <button id="submitBtn">Absen</button>
@@ -120,16 +118,12 @@
     </div>
 
     <script type="module">
-        // Import Firebase Functions
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, query, orderByChild, equalTo, get } 
         from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
 
-        // ==========================================
-        // MASUKKAN FIREBASE CONFIG KAMU DI SINI
-        // ==========================================
         const firebaseConfig = {
-    apiKey: "AIzaSyDXm-jMcH9V48gO7l2m38zohpW0C-rW7EA",
+    apiKey: process.env.API_KEY,
     authDomain: "absen-ig.firebaseapp.com",
     databaseURL: "https://absen-ig-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "absen-ig",
@@ -139,119 +133,82 @@
     measurementId: "G-3RMSBW7CWJ"
   };
 
-
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const absenRef = ref(db, 'absen_ig');
-
-        // Elemen DOM
         const listElement = document.getElementById('linkList');
         const inputElement = document.getElementById('usernameInput');
         const btnElement = document.getElementById('submitBtn');
 
-        // Fungsi Listen Data secara Real-Time
         onValue(absenRef, (snapshot) => {
-            listElement.innerHTML = ''; // Bersihkan list
-            
+            listElement.innerHTML = '';
             if (snapshot.exists()) {
                 snapshot.forEach((childSnapshot) => {
                     const data = childSnapshot.val();
-                    
                     const newListItem = document.createElement('li');
                     const newAnchor = document.createElement('a');
                     newAnchor.href = data.link;
                     newAnchor.target = "_blank";
                     newAnchor.textContent = data.link;
-
                     newListItem.appendChild(newAnchor);
                     listElement.appendChild(newListItem);
                 });
             } else {
                 listElement.innerHTML = '<li>Belum ada yang absen.</li>';
             }
-            
-            // Auto-scroll ke bawah saat ada absen baru
             const container = document.querySelector('.list-container');
             container.scrollTop = container.scrollHeight;
         });
 
-        // Fungsi Menambah Absen
         function ekstrakUsername(input) {
-            // 1. Ambil baris paling bawah (kalau dia copas seluruh list)
             const baris = input.trim().split('\n').filter(line => line.trim() !== '');
             let teksMentah = baris[baris.length - 1].trim();
-
-            // 2. Kalau ada angka absen di depannya (misal "3. " atau "3) " atau "- "), hapus
             teksMentah = teksMentah.replace(/^[0-9]+[\.\)\-]\s*/g, '').trim();
-
-            // 3. Hapus '@' kalau ada
             if (teksMentah.startsWith('@')) {
                 teksMentah = teksMentah.substring(1);
             }
 
-            // 4. Pisahkan teks berdasarkan garis miring '/' (kalau dia input URL lengkap)
             const bagian = teksMentah.split('/');
-            
             let hasilUsername = "";
             
-            // Cek dari belakang untuk cari username (mengabaikan https dan instagram.com)
             for (let i = bagian.length - 1; i >= 0; i--) {
                 let kata = bagian[i].trim();
-                
-                // Bersihkan kalau ada embel-embel parameter link (contoh: ?igsh=1234)
                 kata = kata.split('?')[0]; 
-                
-                // Kalau kata ini bukan link dan tidak kosong, berarti ini username-nya
                 if (kata !== "" && !kata.includes("http") && !kata.includes("instagram.com")) {
                     hasilUsername = kata;
                     break;
                 }
             }
 
-            // Fallback kalau hasil pecahannya kosong
             if (!hasilUsername) {
                 hasilUsername = teksMentah.split('?')[0];
             }
-
             return hasilUsername.trim();
         }
 
-        // Fungsi Menambah Absen (Diperbarui)
         async function addToList() {
             const nilaiInput = inputElement.value;
-            
-            // Panggil fungsi pembersih di atas
             let usernameBersih = ekstrakUsername(nilaiInput);
-
             if (usernameBersih === "") {
                 alert("Username tidak valid!");
                 return;
             }
 
             const igLink = `https://instagram.com/${usernameBersih}`;
-
             btnElement.disabled = true;
             btnElement.textContent = "...";
-
-            // Cek apakah link sudah ada (mencegah absen ganda)
             const checkQuery = query(absenRef, orderByChild('link'), equalTo(igLink));
             const snapshot = await get(checkQuery);
-
             if (snapshot.exists()) {
                 alert("Username ini sudah absen!");
             } else {
-                // Simpan ke Firebase
                 push(absenRef, { link: igLink });
                 inputElement.value = "";
             }
-
             btnElement.disabled = false;
             btnElement.textContent = "Absen";
             inputElement.focus();
         }
-
-        // Event Listeners
         btnElement.addEventListener('click', addToList);
         inputElement.addEventListener('keypress', function(event) {
             if (event.key === 'Enter') addToList();
